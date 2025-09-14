@@ -10,6 +10,7 @@
 
 <img width="376" height="106" alt="image" src="https://github.com/user-attachments/assets/cf150651-7b6b-453c-add4-f6733633f0bc" />
 
+pakageManager에서 install git url `https://github.com/HyunWoo-Jo/UnityLuaModding.git?path=/com.hw.unity-lua-modding`를 추가합니다.
 
 <a id = ls></ls>
 ## License
