@@ -1,0 +1,32 @@
+
+{
+  "name": "com.hw.unity-lua-modding",
+  "version": "0.0.1",
+  "displayName": "Lua Modding System",
+  "description": "Runtime Lua mod loading system for Unity games",
+  "unity": "2021.3",
+  "unityRelease": "0f1",
+  "keywords": [
+    "modding",
+    "lua",
+    "runtime",
+    "scripting",
+    "hot-reload",
+    "nlua"
+  ],
+  "author": {
+    "name": "hyunwoo",
+    "email": "gusdn200@gmail.com"
+  },
+  "dependencies": {
+    "com.unity.modules.core": "1.0.0",
+    "com.unity.modules.unitywebrequest": "1.0.0"
+  },
+  "samples": [
+    {
+      "displayName": "Basic Lua Mod",
+      "description": "A simple example demonstrating basic Lua modding functionality",
+      "path": "Samples~/BasicLuaMod"
+    }
+  ]
+}
