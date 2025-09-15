@@ -3,6 +3,9 @@ using System;
 using System.Collections.Generic;
 using Modding.Loaders;
 using Modding.Utils;
+using Modding.Events;
+using static Modding.ModEvents;
+using Modding.Bridge;
 namespace Modding.Engine {
     /// <summary>
     /// Manages the entire modding system
@@ -42,6 +45,8 @@ namespace Modding.Engine {
         public int LoadedModCount => _loadedMods.Count;
         #endregion
 
+        /////// Method ///////
+
         #region LifeCycle 
         private void Awake() {
             // Singleton
@@ -55,6 +60,7 @@ namespace Modding.Engine {
             // Init (초기화)
             try {
                 SetupDebug();
+                SetupEventSystem();
                 RegisterModLoaders();
                 SetupModDirectory();
 
@@ -95,6 +101,14 @@ namespace Modding.Engine {
                 ModDebug.OnLogWarning += Debug.LogWarning;
                 ModDebug.OnLogError += Debug.LogError;
             }
+        }
+
+        private void SetupEventSystem() {
+            ModEventBus.Subscribe<ModEvents.ModLoaded>(OnModLoaded);
+            ModEventBus.Subscribe<ModEvents.ModUnloaded>(OnModUnloaded);
+            ModEventBus.Subscribe<ModEvents.GameStateChanged>(OnGameStateChanged);
+
+            ModDebug.Log("Event system initialized");
         }
 
         private void RegisterModLoaders() {
@@ -165,7 +179,7 @@ namespace Modding.Engine {
                     ModDebug.Log($"Mod loaded successfully ({selectedLoader.LoaderName}): {modName}");
 
                     // Mod loaded event
-                    //EventBus.Publish(new ModLoadedEvent { ModName = modName, Version = modInstance.Version });
+                    ModEventBus.Publish(new ModEvents.ModLoaded { ModName = modName, Version = modInstance.Version });
                 } else {
                     _failedMods.Add(modName);
                     ModDebug.Log($"Mod initialization failed: {modName}");
@@ -228,6 +242,41 @@ namespace Modding.Engine {
         //}
         #endregion
 
+        #region Events
+        private void OnModLoaded(ModEvents.ModLoaded eventData) {
+            ModDebug.Log($"Event: Mod {eventData.ModName} loaded successfully");
+        }
+
+        private void OnModUnloaded(ModEvents.ModUnloaded eventData) {
+            ModDebug.Log($"Event: Mod {eventData.ModName} unloaded");
+        }
+
+        private void OnGameStateChanged(ModEvents.GameStateChanged eventData) {
+            ModDebug.Log($"Event: Game state changed to {eventData.State}");
+
+            // Notify all mods according to game state (게임 상태에 따라 모든 모드에 알림)
+            switch (eventData.State) {
+                case "Paused":
+                foreach (var mod in _loadedMods.Values) {
+                    try {
+                        mod.OnGamePause();
+                    } catch (Exception e) {
+                        ModDebug.LogError($"Mod {mod.Name} pause error: {e.Message}");
+                    }
+                }
+                break;
+                case "Resumed":
+                foreach (var mod in _loadedMods.Values) {
+                    try {
+                        mod.OnGameResume();
+                    } catch (Exception e) {
+                        ModDebug.LogError($"Mod {mod.Name} resume error: {e.Message}");
+                    }
+                }
+                break;
+            }
+        }
+        #endregion
 
         #region public
         public string[] ScanModsDicrectory() {

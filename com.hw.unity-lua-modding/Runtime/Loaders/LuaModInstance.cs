@@ -4,6 +4,7 @@ using Modding.API;
 using Modding.Utils;
 using System.Text;
 using Modding.Engine;
+using System;
 namespace Modding.Loaders {
     public class LuaModInstance : IModInstance {
         public string Name { get; private set; }
@@ -79,13 +80,21 @@ namespace Modding.Loaders {
         }
 
         private void RegisterCSharpAPI() {
-            // Register C# API for use in Lua (Lua에서 사용할 C# API 등록)
-            _luaState["ModAPI"] = new LuaModAPI();
-            _luaState["Unity"] = new UnityLuaAPI();
+            try {
+                // Register C# API for use in Lua (Lua에서 사용할 C# API 등록)
+                _luaState["ModAPI"] = new LuaModAPI();
+                _luaState["Unity"] = new UnityLuaAPI();
+                _luaState["Event"] = new LuaEventWrapper();
 
-            // Register C# functions as Lua functions (C# 함수들을 Lua 함수로 등록)
-            _luaState.RegisterFunction("print", this, typeof(LuaModInstance).GetMethod("LuaPrint"));
-            _luaState.RegisterFunction("log", this, typeof(LuaModInstance).GetMethod("LuaLog"));
+                // Register C# functions as Lua functions (C# 함수들을 Lua 함수로 등록)
+                _luaState.RegisterFunction("print", this, typeof(LuaModInstance).GetMethod("LuaPrint"));
+                _luaState.RegisterFunction("log", this, typeof(LuaModInstance).GetMethod("LuaLog"));
+
+                ModDebug.Log("LuaModInstance: Successfully registered C# APIs for Lua");
+            } catch (Exception e) {
+                ModDebug.LogError($"LuaModInstance: Failed to register C# APIs: {e.Message}");
+                throw;
+            }
         }
 
         private string FindLuaScript() {
