@@ -1,4 +1,4 @@
-using Modding.Engine;
+﻿using Modding.Engine;
 using System;
 using UnityEngine;
 

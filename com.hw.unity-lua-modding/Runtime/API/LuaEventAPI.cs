@@ -1,4 +1,4 @@
-using Modding.Engine;
+ï»¿using Modding.Engine;
 using Modding.Events;
 using Modding.Utils;
 using NLua;
@@ -6,36 +6,43 @@ using System;
 using System.Collections.Generic;
 
 namespace Modding.API {
+    /// <summary>
+    /// Wrapper class to use static methods as instance methods in Lua
+    /// Static ë©”ì„œë“œë¥¼ Lua ì¸ìŠ¤í„´ìŠ¤ ë°©ì‹ìœ¼ë¡œ ì‚¬ìš©í•  ìˆ˜ ìˆê²Œ í•´ì£¼ëŠ” ë˜í¼ í´ë˜ìŠ¤
+    /// </summary>
     public class LuaEventWrapper {
         /// <summary>
-        /// ÀÌº¥Æ® ±¸µ¶ (Lua¿¡¼­ Event:Subscribe() ÇüÅÂ·Î È£Ãâ)
+        /// ì´ë²¤íŠ¸ êµ¬ë… (Luaì—ì„œ Event:Subscribe() í˜•íƒœë¡œ í˜¸ì¶œ)
         /// </summary>
         public void Subscribe(string eventName, LuaFunction handler) {
             LuaEventAPI.Subscribe(eventName, handler);
         }
 
         /// <summary>
-        /// ÀÌº¥Æ® ±¸µ¶ ÇØÁ¦ (Lua¿¡¼­ Event:Unsubscribe() ÇüÅÂ·Î È£Ãâ)
+        /// ì´ë²¤íŠ¸ êµ¬ë… í•´ì œ (Luaì—ì„œ Event:Unsubscribe() í˜•íƒœë¡œ í˜¸ì¶œ)
         /// </summary>
         public void Unsubscribe(string eventName, LuaFunction handler) {
             LuaEventAPI.Unsubscribe(eventName, handler);
         }
 
         /// <summary>
-        /// ÀÌº¥Æ® ¹ß»ı (Lua¿¡¼­ Event:Publish() ÇüÅÂ·Î È£Ãâ)
+        /// ì´ë²¤íŠ¸ ë°œìƒ (Luaì—ì„œ Event:Publish() í˜•íƒœë¡œ í˜¸ì¶œ)
         /// </summary>
         public void Publish(string eventName, object data = null) {
             LuaEventAPI.Publish(eventName, data);
         }
 
         /// <summary>
-        /// Æ¯Á¤ ÀÌº¥Æ®ÀÇ ¸ğµç ÇÚµé·¯ Á¤¸®
+        /// íŠ¹ì • ì´ë²¤íŠ¸ì˜ ëª¨ë“  í•¸ë“¤ëŸ¬ ì •ë¦¬
         /// </summary>
         public void ClearEventHandlers(string eventName) {
             LuaEventAPI.UnsubscribeAll(eventName);
         }
 
     }
+    /// <summary>
+    /// API for Lua scripts to access C# event bus (Lua ìŠ¤í¬ë¦½íŠ¸ì—ì„œ C# ì´ë²¤íŠ¸ ë²„ìŠ¤ì— ì ‘ê·¼í•  ìˆ˜ ìˆëŠ” API)
+    /// </summary>
     public partial class LuaEventAPI {
 
         private static Dictionary<string, Dictionary<LuaFunction, Action<object>>> _handlerMappings = new();
@@ -47,14 +54,14 @@ namespace Modding.API {
             }
             Action<object> wrapperHandler = (data) => {
                 try {
-                    // Lua ÇÔ¼ö È£Ãâ (Lua function call)
+                    // Lua í•¨ìˆ˜ í˜¸ì¶œ (Lua function call)
                     handler.Call(data);
                 } catch (Exception e) {
                     ModDebug.LogError($"LuaEventAPI: Error in Lua event handler: {e.Message}");
                 }
             };
 
-            // ¸ÅÇÎ ÀúÀå
+            // ë§¤í•‘ ì €ì¥
             if (!_handlerMappings.ContainsKey(eventName)) {
                 _handlerMappings[eventName] = new Dictionary<LuaFunction, Action<object>>();
             }
@@ -64,19 +71,19 @@ namespace Modding.API {
         }
 
         public static void Unsubscribe(string eventName, LuaFunction handler) {
-            // ÀúÀåµÈ ¸ÅÇÎ¿¡¼­ ·¡ÆÛ ÇÚµé·¯ Ã£±â
+            // ì €ì¥ëœ ë§¤í•‘ì—ì„œ ë˜í¼ í•¸ë“¤ëŸ¬ ì°¾ê¸°
             if (_handlerMappings.ContainsKey(eventName) &&
                 _handlerMappings[eventName].ContainsKey(handler)) {
 
                 var wrapperHandler = _handlerMappings[eventName][handler];
 
-                // ½ÇÁ¦ ÀÌº¥Æ® ±¸µ¶ ÇØÁ¦
+                // ì‹¤ì œ ì´ë²¤íŠ¸ êµ¬ë… í•´ì œ
                 ModEventBus.Unsubscribe(eventName, wrapperHandler);
 
-                // ¸ÅÇÎ¿¡¼­ Á¦°Å
+                // ë§¤í•‘ì—ì„œ ì œê±°
                 _handlerMappings[eventName].Remove(handler);
 
-                // ÇØ´ç ÀÌº¥Æ®ÀÇ ÇÚµé·¯°¡ ¸ğµÎ Á¦°ÅµÇ¸é µñ¼Å³Ê¸®¿¡¼­µµ Á¦°Å
+                // í•´ë‹¹ ì´ë²¤íŠ¸ì˜ í•¸ë“¤ëŸ¬ê°€ ëª¨ë‘ ì œê±°ë˜ë©´ ë”•ì…”ë„ˆë¦¬ì—ì„œë„ ì œê±°
                 if (_handlerMappings[eventName].Count == 0) {
                     _handlerMappings.Remove(eventName);
                 }
