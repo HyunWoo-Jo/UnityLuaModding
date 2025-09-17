@@ -110,29 +110,6 @@ namespace Modding.API {
         }
         #endregion
 
-        //#region 이벤트 관련
-        ///// <summary>
-        ///// 게임 이벤트 발행
-        ///// </summary>
-        //public void TriggerGameEvent(string eventName, object data = null) {
-        //    Debug.Log($"[ModAPI] 이벤트 발행: {eventName}");
-
-        //    // 실제로는 EventBus와 연동
-        //    switch (eventName.ToLower()) {
-        //        case "pause":
-        //        EventBus.Publish(new PauseGameEvent());
-        //        break;
-        //        case "resume":
-        //        EventBus.Publish(new ResumeGameEvent());
-        //        break;
-        //        default:
-        //        Debug.LogWarning($"[ModAPI] 알 수 없는 이벤트: {eventName}");
-        //        break;
-        //    }
-        //}
-        //#endregion
-
-
 
         #region 게임 상태 관련
         /// <summary>

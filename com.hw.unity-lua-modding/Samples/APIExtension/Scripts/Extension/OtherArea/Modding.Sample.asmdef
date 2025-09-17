@@ -1,0 +1,16 @@
+{
+    "name": "Modding.Sample",
+    "rootNamespace": "Modding.Sample",
+    "references": [
+        "GUID:612c92464daa0e543a926eca20facd87"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}
