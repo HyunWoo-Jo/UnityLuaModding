@@ -10,6 +10,7 @@ namespace Modding.Engine {
     /// Manages the entire modding system
     /// 전체 모드를 관리하는 핵심 시스템
     /// </summary>
+    [DefaultExecutionOrder(1000)]
     public class ModEngine : MonoBehaviour {
         #region Singleton
         public static ModEngine Instance { get; private set; }

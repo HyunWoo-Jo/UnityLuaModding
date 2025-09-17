@@ -6,7 +6,7 @@ namespace Modding.API {
     /// Context API for Lua mods to interact with Unity environment
     /// Lua 모드에서 사용할 수 있는 컨텍스트 API
     /// </summary>
-    public class LuaModContext {
+    public partial class LuaModContext {
         private string _modFolderPath;
 
         public LuaModContext(string folderPath) {
