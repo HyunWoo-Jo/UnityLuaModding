@@ -1,4 +1,4 @@
-using UnityEngine;
+﻿using UnityEngine;
 using Modding.API;
 namespace Modding.Sample
 {

@@ -14,5 +14,7 @@ namespace Modding.Engine {
         void OnGamePause();
         void OnGameResume();
         void Shutdown();
+
+        void SceneChanged(string sceneName);
     }
 }

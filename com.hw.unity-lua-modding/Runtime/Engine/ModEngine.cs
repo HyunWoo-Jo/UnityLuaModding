@@ -4,7 +4,7 @@ using System.Collections.Generic;
 using Modding.Loaders;
 using Modding.Utils;
 using Modding.Events;
-using static Modding.ModEvents;
+using UnityEngine.SceneManagement;
 namespace Modding.Engine {
     /// <summary>
     /// Manages the entire modding system
@@ -45,9 +45,10 @@ namespace Modding.Engine {
 
         #region Manage Mod (모드 관리)
         private Dictionary<string, IModInstance> _loadedMods = new();
+        private Dictionary<string, List<(ModInfo info, string path)>> _sceneModMap = new(); 
         private List<string> _failedMods = new();
         private List<IModLoader> _modLoaders = new();
-
+       
         public IReadOnlyDictionary<string, IModInstance> LoadedMods => _loadedMods;
         public int LoadedModCount => _loadedMods.Count;
         #endregion
@@ -122,9 +123,16 @@ namespace Modding.Engine {
             ModEventBus.Subscribe<ModEvents.ModUnloaded>(OnModUnloaded);
             ModEventBus.Subscribe<ModEvents.GameStateChanged>(OnGameStateChanged);
 
+            SceneManager.activeSceneChanged += SceneChangedEvent;
+
             ModDebug.Log("Event system initialized");
         }
 
+        private void SceneChangedEvent(Scene scene1, Scene scene2) {
+            foreach (var mod in _loadedMods) {
+                mod.Value.SceneChanged(scene2.name);
+            }
+        }
         private void RegisterModLoaders() {
             _modLoaders.Add(new LuaModLoader());
             ModDebug.Log($"Lua loader registered");
@@ -156,13 +164,13 @@ namespace Modding.Engine {
                 ModDebug.Log($"Found {modFolders.Length} mod folders");
 
                 // 1. Scan all mod (모든 모드 정보를 먼저 스캔)
-                var allModInfoDict = new Dictionary<string, (ModInfo info, string path)>();
+                var allModInfoDict = new Dictionary<string, ModInfo>();
                 foreach (string modFolder in modFolders) {
                     try {
                         if (ModUtility.IsValidModFolder(modFolder)) {
                             var modInfo = ModUtility.LoadModInfo(modFolder);
                             if (modInfo != null && modInfo.enabled) {
-                                allModInfoDict[modInfo.name] = (modInfo, modFolder);
+                                allModInfoDict[modInfo.name] = modInfo;
                             }
                         }
                     } catch (System.Exception e) {
@@ -183,7 +191,7 @@ namespace Modding.Engine {
                 // 3. Load mods in dependency order (의존성 순서대로 모드 로딩)
                 foreach (string modName in loadingOrder) {
                     if (allModInfoDict.ContainsKey(modName)) {
-                        LoadSingleMod(allModInfoDict[modName].path, allModInfoDict[modName].info);
+                        LoadSingleMod(allModInfoDict[modName].path, allModInfoDict[modName]);
                     }
                 }
 
@@ -364,7 +372,7 @@ namespace Modding.Engine {
         /// Resolve mod dependencies and return loading order
         /// 모드 의존성을 해결하고 로딩 순서를 반환
         /// </summary>
-        private List<string> ResolveDependencies(Dictionary<string, (ModInfo info, string path)> allMods) {
+        private List<string> ResolveDependencies(Dictionary<string, ModInfo> allMods) {
             var loadingOrder = new List<string>();
             var visited = new HashSet<string>();
             var visiting = new HashSet<string>();
@@ -386,7 +394,7 @@ namespace Modding.Engine {
                 }
 
                 visiting.Add(modName);
-                var modInfo = allMods[modName].info;
+                var modInfo = allMods[modName];
 
                 // Process dependencies first (의존성을 먼저 처리)
                 if (modInfo.HasRequiredMods) {

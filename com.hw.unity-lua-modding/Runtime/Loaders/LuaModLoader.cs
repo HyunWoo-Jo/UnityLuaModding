@@ -39,7 +39,7 @@ namespace Modding.Loaders {
                 }
 
                 // Create Lua mod instance (lua instance 생성)
-                var luaMod = new LuaModInstance(modInfo, modFolderPath);
+                var luaMod = new LuaModInstance(modInfo);
                 return luaMod;
 
             } catch (System.Exception e) {

@@ -38,6 +38,7 @@ namespace Modding.Utils
                 string modJsonPath = Path.Combine(modFolderPath, "mod.json");
                 string jsonContent = File.ReadAllText(modJsonPath);
                 ModInfo info = JsonUtility.FromJson<ModInfo>(jsonContent);
+                info.path = modFolderPath;
 
                 if (PlayerPrefs.HasKey(info.name)) {
                     info.enabled = PlayerPrefs.GetInt(info.name) == 1;

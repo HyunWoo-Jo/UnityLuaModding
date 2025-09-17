@@ -8,7 +8,11 @@ namespace Modding {
         public string description;
         public string author;
         public ModDependency[] requiredMods = new ModDependency[0];
+        public string[] targetScenes = new string[0];
+
+       
         public bool enabled = true;
+        public string path;
 
         public bool HasRequiredMods => requiredMods != null && requiredMods.Length > 0;
         public System.Version GetVersion() {

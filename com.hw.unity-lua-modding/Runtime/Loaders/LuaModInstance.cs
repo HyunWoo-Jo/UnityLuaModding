@@ -11,11 +11,11 @@ namespace Modding.Loaders {
         public ModInfo ModInfo { get; private set; }
 
         public string Name { get { return ModInfo.name; } }
-        public System.Version Version { get { return ModInfo.GetVersion(); } }
+        public Version Version { get { return ModInfo.GetVersion(); } }
         public bool IsLoaded { get; private set; }
+        public string Path { get { return ModInfo.path; } }
 
         private Lua _luaState;
-        private string _modFolderPath;
 
         // Cache Lua functions (Lua 함수들 캐싱)
         private LuaFunction _initializeFunc;
@@ -23,10 +23,10 @@ namespace Modding.Loaders {
         private LuaFunction _pauseFunc;
         private LuaFunction _resumeFunc;
         private LuaFunction _shutdownFunc;
+        private LuaFunction _sceneChangedFucn;
 
-        public LuaModInstance(ModInfo modInfo, string path) {
+        public LuaModInstance(ModInfo modInfo) {
             ModInfo = modInfo;
-            _modFolderPath = path;
         }
 
         public bool Initialize() {
@@ -35,7 +35,7 @@ namespace Modding.Loaders {
 
                 // Create Lua state (Lua 상태 생성)
                 _luaState = new Lua();
-                _luaState.State.Encoding = UTF8Encoding.UTF8;
+                _luaState.State.Encoding =  UTF8Encoding.UTF8;
 
                 // Register C# API to Lua (C# API를 Lua에 등록)
                 RegisterCSharpAPI();
@@ -62,7 +62,7 @@ namespace Modding.Loaders {
 
                 // Call Lua mod initialization function (Lua 모드 초기화 함수 호출)
                 if (_initializeFunc != null) {
-                    var context = new LuaModContext(_modFolderPath);
+                    var context = new LuaModContext(Path);
                     var initResults = _initializeFunc.Call(context);
 
                     if (initResults.Length > 0 && initResults[0] is bool success && success) {
@@ -74,7 +74,7 @@ namespace Modding.Loaders {
 
                 ModDebug.LogError($"[LuaMod] {Name} initialization function failed");
                 return false;
-            } catch (System.Exception e) {
+            } catch (Exception e) {
                 ModDebug.LogError($"[LuaMod] {Name} initialization error: {e.Message}");
                 CleanupLuaState();
                 return false;
@@ -117,10 +117,10 @@ namespace Modding.Loaders {
         private string FindLuaScript() {
             // Possible Lua script paths (가능한 Lua 스크립트 경로들)
             string[] possiblePaths = {
-                System.IO.Path.Combine(_modFolderPath, "Scripts", "main.lua"),
-                System.IO.Path.Combine(_modFolderPath, "Scripts", "mod.lua"),
-                System.IO.Path.Combine(_modFolderPath, "main.lua"),
-                System.IO.Path.Combine(_modFolderPath, $"{Name}.lua")
+                System.IO.Path.Combine(Path, "Scripts", "main.lua"),
+                System.IO.Path.Combine(Path, "Scripts", "mod.lua"),
+                System.IO.Path.Combine(Path, "main.lua"),
+                System.IO.Path.Combine(Path, $"{Name}.lua")
             };
 
             foreach (string path in possiblePaths) {
@@ -154,6 +154,7 @@ namespace Modding.Loaders {
             _pauseFunc = modTable["OnPause"] as LuaFunction;
             _resumeFunc = modTable["OnResume"] as LuaFunction;
             _shutdownFunc = modTable["Shutdown"] as LuaFunction;
+            _sceneChangedFucn = modTable["SceneChanged"] as LuaFunction;
         }
 
         public void Update(float deltaTime) {
@@ -161,7 +162,7 @@ namespace Modding.Loaders {
 
             try {
                 _updateFunc.Call(deltaTime);
-            } catch (System.Exception e) {
+            } catch (Exception e) {
                 ModDebug.LogError($"[LuaMod] {Name} update error: {e.Message}");
 
             }
@@ -170,7 +171,7 @@ namespace Modding.Loaders {
         public void OnGamePause() {
             try {
                 _pauseFunc?.Call();
-            } catch (System.Exception e) {
+            } catch (Exception e) {
                 ModDebug.LogError($"[LuaMod] {Name} pause error: {e.Message}");
             }
         }
@@ -178,7 +179,7 @@ namespace Modding.Loaders {
         public void OnGameResume() {
             try {
                 _resumeFunc?.Call();
-            } catch (System.Exception e) {
+            } catch (Exception e) {
                 ModDebug.LogError($"[LuaMod] {Name} resume error: {e.Message}");
             }
         }
@@ -186,11 +187,19 @@ namespace Modding.Loaders {
         public void Shutdown() {
             try {
                 _shutdownFunc?.Call();
-            } catch (System.Exception e) {
+            } catch (Exception e) {
                 ModDebug.LogError($"[LuaMod] {Name} shutdown error: {e.Message}");
             } finally {
                 CleanupLuaState();
                 IsLoaded = false;
+            }
+        }
+
+        public void SceneChanged(string sceneName) {
+            try {
+                _sceneChangedFucn?.Call(sceneName);
+            } catch(Exception e) {
+                ModDebug.LogError($"[LuaMod] {Name} SceneChanged: {e.Message}");
             }
         }
 
