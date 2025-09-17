@@ -116,16 +116,19 @@ function ModName.Update(deltaTime)
 end
 
 function ModName.Shutdown()
-  -- 모드가 언로드될 때 정리 작업
+   -- 모드가 언로드될 때 정리 작업
 end
 function ModName.OnPause()
-    -- 게임이 정지될때 호출
+   -- 게임이 정지될때 호출
 end
 
 function ModName.OnResume()
-    -- 게임이 다시 작동할때 호출
+   -- 게임이 다시 작동할때 호출
 end
 
+function ModName.SceneChanged(sceneName)
+   -- 씬이 변경될때 호출출
+end
 --테이블 반환 중요
 return ModName
 ```
@@ -161,6 +164,9 @@ end)
 
 ### API 확장
 - API 코드들은 `partial`로 작성이 되어있으며 다음과 같이 확장이 가능합니다.
+  - **`partial` 확장**
+  - **`DI` + `Interface` 확장**
+  - **`Attribute` 확장**
 ```c#
 // Ex  Extension.cs
 // Assembly Definition Reference을 활용 같은 Assembly영역에 정의
@@ -171,7 +177,8 @@ namespace Modding.API {
     }
   }
 }
-
+```
+```c#
 // 외부 함수를 이용할 경우 DI + Interface 방식을 활용
 // Assembly Definition Reference을 활용 같은 Assembly영역에 정의
 namespace Modding.API {
@@ -209,6 +216,19 @@ namespace Other
         }
     }
 }
+```
+```c#
+// Attribute 확장
+[ModAPICategory("Unity.Core")]
+public static class UnityGameObjectAPI {
+   [ModAPI("GameObject.Create", "새 게임오브젝트 생성")]
+   public static GameObject CreateGameObject(string name) {
+       return new GameObject(name);
+   }
+}
+// lua
+CallAPI("Unity.Core.GameObject.Create", "test attribute")
+
 ```
 ---
 <a id = security></a>
