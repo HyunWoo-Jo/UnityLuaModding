@@ -6,7 +6,7 @@ namespace Modding {
     public partial class ModEvents {
         public class ModLoaded {
             public string ModName { get; set; }
-            public string Version { get; set; }
+            public System.Version Version { get; set; }
             public IModInstance Instance { get; set; }
         }
 

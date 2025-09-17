@@ -10,7 +10,7 @@ namespace Modding.Loaders {
 
         public bool CanLoad(string modFolderPath) {
             // 1. Scan mod.json 
-            if (!ModJsonUtils.Exists(modFolderPath)) {
+            if (!ModUtility.JsonExists(modFolderPath)) {
                 return false;
             }
 
@@ -33,13 +33,13 @@ namespace Modding.Loaders {
         public IModInstance LoadMod(string modFolderPath) {
             try {
                 // Read mod.json (mod.json 읽어 info로 변환)
-                ModInfo modInfo = ModJsonUtils.LoadModInfo(modFolderPath);
+                ModInfo modInfo = ModUtility.LoadModInfo(modFolderPath);
                 if (modInfo == null) {
                     return null;
                 }
 
                 // Create Lua mod instance (lua instance 생성)
-                var luaMod = new LuaModInstance(modInfo.name, modInfo.version, modFolderPath);
+                var luaMod = new LuaModInstance(modInfo, modFolderPath);
                 return luaMod;
 
             } catch (System.Exception e) {

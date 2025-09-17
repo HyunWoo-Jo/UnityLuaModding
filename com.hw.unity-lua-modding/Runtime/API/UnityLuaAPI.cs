@@ -155,20 +155,6 @@ namespace Modding.API {
         public float Abs(float value) => Mathf.Abs(value);
         public float Clamp(float value, float min, float max) => Mathf.Clamp(value, min, max);
 
-        /// <summary>
-        /// 로그 출력
-        /// </summary>
-        public void Log(string message) {
-            Debug.Log($"[Unity Lua] {message}");
-        }
-
-        public void LogWarning(string message) {
-            Debug.LogWarning($"[Unity Lua] {message}");
-        }
-
-        public void LogError(string message) {
-            Debug.LogError($"[Unity Lua] {message}");
-        }
         #endregion
 
         #region 오디오 관련 (기본 구현)

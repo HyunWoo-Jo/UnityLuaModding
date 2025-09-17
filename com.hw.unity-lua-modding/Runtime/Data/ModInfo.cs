@@ -10,7 +10,6 @@ namespace Modding {
         public ModDependency[] requiredMods = new ModDependency[0];
         public bool enabled = true;
 
-
         public bool HasRequiredMods => requiredMods != null && requiredMods.Length > 0;
         public System.Version GetVersion() {
             if (System.Version.TryParse(version, out System.Version ver))

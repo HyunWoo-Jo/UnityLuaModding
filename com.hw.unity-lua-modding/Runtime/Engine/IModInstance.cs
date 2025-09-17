@@ -1,10 +1,12 @@
 ﻿using UnityEngine;
-
+using System;
 namespace Modding.Engine {
 
     public interface IModInstance {
+
+        ModInfo ModInfo { get; }
         string Name { get; }
-        string Version { get; }
+        Version Version { get; }
         bool IsLoaded { get; }
 
         bool Initialize();

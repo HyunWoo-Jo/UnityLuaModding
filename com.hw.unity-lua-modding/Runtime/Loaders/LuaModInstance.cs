@@ -7,8 +7,11 @@ using Modding.Engine;
 using System;
 namespace Modding.Loaders {
     public class LuaModInstance : IModInstance {
-        public string Name { get; private set; }
-        public string Version { get; private set; }
+
+        public ModInfo ModInfo { get; private set; }
+
+        public string Name { get { return ModInfo.name; } }
+        public System.Version Version { get { return ModInfo.GetVersion(); } }
         public bool IsLoaded { get; private set; }
 
         private Lua _luaState;
@@ -21,10 +24,9 @@ namespace Modding.Loaders {
         private LuaFunction _resumeFunc;
         private LuaFunction _shutdownFunc;
 
-        public LuaModInstance(string name, string version, string folderPath) {
-            Name = name;
-            Version = version;
-            _modFolderPath = folderPath;
+        public LuaModInstance(ModInfo modInfo, string path) {
+            ModInfo = modInfo;
+            _modFolderPath = path;
         }
 
         public bool Initialize() {
@@ -37,7 +39,7 @@ namespace Modding.Loaders {
 
                 // Register C# API to Lua (C# API를 Lua에 등록)
                 RegisterCSharpAPI();
-
+                ApplySecurity();
                 // Find and execute Lua script (Lua 스크립트 파일 찾기 및 실행)
                 string luaScript = FindLuaScript();
                 if (string.IsNullOrEmpty(luaScript)) {
@@ -76,6 +78,21 @@ namespace Modding.Loaders {
                 ModDebug.LogError($"[LuaMod] {Name} initialization error: {e.Message}");
                 CleanupLuaState();
                 return false;
+            }
+        }
+
+        private void ApplySecurity() {
+            try {
+                // 보안 코드 나중에 수정해야함
+                string securityScript = @"            
+            io = nil
+            os = nil   
+        ";
+                
+                _luaState.DoString(securityScript);
+                ModDebug.Log($"[LuaMod] {Name}: Security restrictions applied");
+            } catch(Exception e) {
+                ModDebug.LogError($"[LuaMod] {Name}: Failed to apply security restrictions: {e.Message}");
             }
         }
 
