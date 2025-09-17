@@ -64,6 +64,7 @@ Application.persistentDataPath (C:\Users\{UserName}\AppData\LocalLow\{CompanyNam
     ├── mod.json
     └── main.lua
 ```
+
 #### mod.json
 ```json
 {
@@ -72,6 +73,7 @@ Application.persistentDataPath (C:\Users\{UserName}\AppData\LocalLow\{CompanyNam
   "description": "설명",
   "author": "제작자",
   "requiredMods": []
+  "targetScenes": []
 }
 ```
 
@@ -99,6 +101,13 @@ Application.persistentDataPath (C:\Users\{UserName}\AppData\LocalLow\{CompanyNam
 - 의존성을 먼저 로드
 - 의존성이 누락된 경우 로딩 방지
 - 버전 호환성 처리
+
+#### 목표로하는 Scene이 존재할경우
+없을 경우 모든 씬에 적용
+```json
+"targetScenes": ["TestScene"]
+
+```
 
 #### main.lua
 ```lua
