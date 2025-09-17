@@ -1,0 +1,8 @@
+﻿{
+    "name": "테스트 Lua 모드",
+    "version": "1.0",
+    "description": "기본 Lua 모드 테스트",
+    "author": "개발자",
+    "requiredMods": [],
+    "targetScenes":["APIExtension"]
+}

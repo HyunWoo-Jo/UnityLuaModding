@@ -15,10 +15,10 @@ namespace Modding {
         public string path;
 
         public bool HasRequiredMods => requiredMods != null && requiredMods.Length > 0;
-        public System.Version GetVersion() {
-            if (System.Version.TryParse(version, out System.Version ver))
+        public Version GetVersion() {
+            if (Version.TryParse(version, out Version ver))
                 return ver;
-            return new System.Version(1, 0, 0);
+            return new Version(1, 0, 0);
         }
     }
 }

@@ -44,10 +44,12 @@ namespace Modding.Engine {
         #endregion
 
         #region Manage Mod (모드 관리)
-        private Dictionary<string, IModInstance> _loadedMods = new();
-        private Dictionary<string, List<(ModInfo info, string path)>> _sceneModMap = new(); 
-        private List<string> _failedMods = new();
-        private List<IModLoader> _modLoaders = new();
+        private readonly Dictionary<string, IModInstance> _loadedMods = new();
+        private readonly Dictionary<string, List<ModInfo>> _sceneModMap = new();
+        private readonly HashSet<string> _globalMods = new();
+
+        private readonly List<string> _failedMods = new();
+        private readonly List<IModLoader> _modLoaders = new();
        
         public IReadOnlyDictionary<string, IModInstance> LoadedMods => _loadedMods;
         public int LoadedModCount => _loadedMods.Count;
@@ -72,7 +74,8 @@ namespace Modding.Engine {
                 SetupEventSystem();
                 RegisterModLoaders();
                 SetupModDirectory();
-                LoadAllMods(); // 추후 변경 필요
+                ScanAndCategorizeAllMods();
+                LoadGlobalMods();
                 _isInitialized = true;
             } catch {
 
@@ -86,11 +89,11 @@ namespace Modding.Engine {
             foreach (var mod in _loadedMods.Values) {
                 try {
                     mod.Shutdown();
-                } catch (System.Exception e) {
+                } catch (Exception e) {
                     ModDebug.LogError($"Mod shutdown error: {e.Message}");
                 }
             }
-
+            SceneManager.sceneLoaded -= OnSceneLoaded;
             _loadedMods.Clear();
             _failedMods.Clear();
             _isInitialized = false;
@@ -123,15 +126,30 @@ namespace Modding.Engine {
             ModEventBus.Subscribe<ModEvents.ModUnloaded>(OnModUnloaded);
             ModEventBus.Subscribe<ModEvents.GameStateChanged>(OnGameStateChanged);
 
-            SceneManager.activeSceneChanged += SceneChangedEvent;
+            SceneManager.sceneLoaded += OnSceneLoaded;
 
             ModDebug.Log("Event system initialized");
         }
 
-        private void SceneChangedEvent(Scene scene1, Scene scene2) {
+
+        private void OnSceneLoaded(Scene scene, LoadSceneMode mode) {
+            if (!_isInitialized) return;
+
+            string sceneName = scene.name;
+            ModDebug.Log($"Scene loaded: {sceneName}");
+
             foreach (var mod in _loadedMods) {
-                mod.Value.SceneChanged(scene2.name);
+                mod.Value.SceneChanged(scene.name);
             }
+
+            // Unload previous scene mods first
+            UnloadUnneededSceneMods(sceneName);
+
+            // Load mods for new scene
+            LoadSceneMods(sceneName);
+
+            // Publish scene change event
+            ModEventBus.Publish(new ModEvents.GameStateChanged { State = $"SceneLoaded_{sceneName}" });
         }
         private void RegisterModLoaders() {
             _modLoaders.Add(new LuaModLoader());
@@ -150,6 +168,163 @@ namespace Modding.Engine {
         #endregion
 
         #region Mod Loading (모드 로딩)
+        public void ScanAndCategorizeAllMods() {
+            ModDebug.Log("Scanning and categorizing all mods");
+
+            try {
+                var modFolders = ModUtility.ScanModsDicrectory(ModDirectoryPath);
+                ModDebug.Log($"Found {modFolders.Length} mod folders");
+
+                // Clear previous data
+                _sceneModMap.Clear();
+                _globalMods.Clear();
+
+                // Scan all mods and categorize them (스캔 후 분류)
+                foreach (string modFolder in modFolders) {
+                    try {
+                        if (ModUtility.IsValidModFolder(modFolder)) {
+                            var modInfo = ModUtility.LoadModInfo(modFolder);
+                            if (modInfo != null && modInfo.enabled) {
+
+                                // Check global mod (글로벌 모드 확인)
+                                if (modInfo.targetScenes == null || modInfo.targetScenes.Length == 0) {
+                                    _globalMods.Add(modInfo.name);
+                                    ModDebug.Log($"Global mod found: {modInfo.name}");
+                                } else {
+                                    foreach (string sceneName in modInfo.targetScenes) {
+                                        if (!_sceneModMap.ContainsKey(sceneName)) {
+                                            _sceneModMap[sceneName] = new List<ModInfo>();
+                                        }
+                                        _sceneModMap[sceneName].Add(modInfo);
+                                        ModDebug.Log($"Scene mod registered: {modInfo.name} -> {sceneName}");
+                                    }
+                                }
+                            }
+                        }
+                    } catch (Exception e) {
+                        string modName = System.IO.Path.GetFileName(modFolder);
+                        ModDebug.LogError($"Failed to categorize mod {modName}: {e.Message}");
+                    }
+                }
+
+                ModDebug.Log($"Categorization complete - Global mods: {_globalMods.Count}, Scene maps: {_sceneModMap.Count}");
+            } catch (Exception e) {
+                ModDebug.LogError($"Error during mod categorization: {e.Message}");
+            }
+        }
+
+        public void LoadGlobalMods() {
+            if (_isLoading) {
+                ModDebug.Log("Already loading mods");
+                return;
+            }
+
+            ModDebug.Log("Loading global mods");
+            _isLoading = true;
+
+            try {
+                // Collect global mod info
+                var globalModInfoDict = new Dictionary<string, ModInfo>();
+
+                foreach (string globalModName in _globalMods) {
+                    string modPath = System.IO.Path.Combine(ModDirectoryPath, globalModName);
+                    try {
+                        var modInfo = ModUtility.LoadModInfo(modPath);
+                        if (modInfo != null && modInfo.enabled) {
+                            globalModInfoDict[globalModName] = modInfo;
+                        }
+                    } catch (Exception e) {
+                        ModDebug.LogError($"Failed to load global mod info for {globalModName}: {e.Message}");
+                        _failedMods.Add(globalModName);
+                    }
+                }
+
+                // Resolve dependencies and load
+                var loadingOrder = ResolveDependencies(globalModInfoDict);
+                if (loadingOrder != null) {
+                    foreach (string modName in loadingOrder) {
+                        if (globalModInfoDict.ContainsKey(modName)) {
+                            LoadSingleMod(globalModInfoDict[modName].path, globalModInfoDict[modName]);
+                        }
+                    }
+                }
+
+                _isLoading = false;
+                ModDebug.Log($"Global mod loading complete - Success: {_loadedMods.Count}, Failed: {_failedMods.Count}");
+
+            } catch (Exception e) {
+                ModDebug.LogError($"Error during global mod loading: {e.Message}");
+                _isLoading = false;
+            }
+        }
+
+        public void LoadSceneMods(string sceneName) {
+            if (!_sceneModMap.ContainsKey(sceneName)) {
+                ModDebug.Log($"No mods registered for scene: {sceneName}");
+                return;
+            }
+
+            ModDebug.Log($"Loading mods for scene: {sceneName}");
+
+            var sceneModInfoDict = new Dictionary<string, ModInfo>();
+            var sceneModList = _sceneModMap[sceneName];
+
+            // Collect scene mod info (이미 로드된 모드는 제외)
+            foreach (var info in sceneModList) {
+                if (!_loadedMods.ContainsKey(info.name)) {
+                    sceneModInfoDict[info.name] = info;
+                }
+            }
+
+            if (sceneModInfoDict.Count == 0) {
+                ModDebug.Log($"All mods for scene {sceneName} are already loaded");
+                return;
+            }
+
+            // Resolve dependencies and load
+            var loadingOrder = ResolveDependencies(sceneModInfoDict);
+            if (loadingOrder != null) {
+                foreach (string modName in loadingOrder) {
+                    if (sceneModInfoDict.ContainsKey(modName)) {
+                        LoadSingleMod(sceneModInfoDict[modName].path, sceneModInfoDict[modName]);
+                    }
+                }
+            }
+
+            ModDebug.Log($"Scene mod loading complete for {sceneName}");
+        }
+
+        public void UnloadUnneededSceneMods(string currentScene) {
+            var modsToUnload = new List<string>();
+
+            foreach (var loadedMod in _loadedMods.Values) {
+                var modInfo = loadedMod.ModInfo;
+
+                // Skip global mods (targetScenes가 없거나 비어있음)
+                if (modInfo.targetScenes == null || modInfo.targetScenes.Length == 0) {
+                    continue;
+                }
+
+                // Check if current scene is in targetScenes
+                bool isNeededInCurrentScene = false;
+                foreach (string targetScene in modInfo.targetScenes) {
+                    if (targetScene == currentScene) {
+                        isNeededInCurrentScene = true;
+                        break;
+                    }
+                }
+
+                if (!isNeededInCurrentScene) {
+                    modsToUnload.Add(modInfo.name);
+                }
+            }
+
+            // Unload unneeded mods
+            foreach (string modName in modsToUnload) {
+                UnloadMod(modName);
+                ModDebug.Log($"Unloaded scene-specific mod: {modName}");
+            }
+        }
         public void LoadAllMods() {
             if (_isLoading) {
                 ModDebug.Log("Already loading mods");
@@ -173,7 +348,7 @@ namespace Modding.Engine {
                                 allModInfoDict[modInfo.name] = modInfo;
                             }
                         }
-                    } catch (System.Exception e) {
+                    } catch (Exception e) {
                         string modName = System.IO.Path.GetFileName(modFolder);
                         ModDebug.LogError($"Failed to read mod info for {modName}: {e.Message}");
                         _failedMods.Add(modName);
@@ -198,7 +373,7 @@ namespace Modding.Engine {
                 _isLoading = false;
                 ModDebug.Log($"Loading complete - Success: {_loadedMods.Count}, Failed: {_failedMods.Count}");
 
-            } catch (System.Exception e) {
+            } catch (Exception e) {
                 ModDebug.LogError($"Error during mod loading: {e.Message}");
                 _isLoading = false;
             }
@@ -259,7 +434,7 @@ namespace Modding.Engine {
                     _failedMods.Add(modName);
                     ModDebug.LogError($"Mod initialization failed: {modName}");
                 }
-            } catch (System.Exception e) {
+            } catch (Exception e) {
                 ModDebug.LogError($"Failed to load mod {modName}: {e.Message}");
                 _failedMods.Add(modName);
             }
@@ -267,11 +442,13 @@ namespace Modding.Engine {
         #endregion 
 
         #region Mod Management (모드 관리)
+
+
         private void UpdateAllMods(float gameDeltaTime) {
             foreach (var mod in _loadedMods.Values) {
                 try {
                     mod.Update(gameDeltaTime);
-                } catch (System.Exception e) {
+                } catch (Exception e) {
                     ModDebug.LogError($"Mod {mod.Name} update error: {e.Message}");
                 }
             }
@@ -314,7 +491,7 @@ namespace Modding.Engine {
                 ModEventBus.Publish(new ModEvents.ModUnloaded { ModName = modName });
 
                 ModDebug.Log($"Mod {modName} unloaded successfully");
-            } catch (System.Exception e) {
+            } catch (Exception e) {
                 ModDebug.LogError($"Error unloading mod {modName}: {e.Message}");
             }
         }
@@ -360,7 +537,7 @@ namespace Modding.Engine {
                         _loadedMods.Remove(mod);
                         ModEventBus.Publish(new ModEvents.ModUnloaded { ModName = mod });
                         ModDebug.Log($"Force unloaded: {mod}");
-                    } catch (System.Exception e) {
+                    } catch (Exception e) {
                         ModDebug.LogError($"Error force unloading mod {mod}: {e.Message}");
                     }
                 }
