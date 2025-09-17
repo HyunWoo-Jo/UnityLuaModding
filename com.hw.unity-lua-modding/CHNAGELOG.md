@@ -3,7 +3,6 @@
 ## [Unreleased]
 
 ### Added
-- Added API functionality (API 기능 추가)
 - Added individual loading capability (개별 로드 기능 추가)
 
 ## [0.0.2] - 2025-09-16
@@ -14,6 +13,7 @@
     - LuaEventWrapper: Wrapper class to use static methods as instance methods in Lua (Static 메서드를 Lua 인스턴스 방식으로 사용할 수 있게 해주는 래퍼 클래스)
     - Event subscription/unsubscription/publishing functionality (이벤트 구독/구독해제/발생 기능) (Subscribe, Unsubscribe, Publish)
 - Added dependency-aware loading system (의존성을 고려한 로드 방식 추가)
+- Added Samples (샘플 코드 추가) 
 ## [0.0.1] - 2025-09-15
 
 ### Added
