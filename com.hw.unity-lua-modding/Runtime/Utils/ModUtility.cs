@@ -40,7 +40,7 @@ namespace Modding.Utils
                 ModInfo info = JsonUtility.FromJson<ModInfo>(jsonContent);
 
                 if (PlayerPrefs.HasKey(info.name)) {
-                    info.enabled = PlayerPrefs.GetInt(info.name) == 1 ? true : false;
+                    info.enabled = PlayerPrefs.GetInt(info.name) == 1;
                 } else {
                     PlayerPrefs.SetInt(info.name, 1);
                 }
