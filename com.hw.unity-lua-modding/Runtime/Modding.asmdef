@@ -1,7 +1,9 @@
 {
     "name": "Modding",
     "rootNamespace": "Modding",
-    "references": [],
+    "references": [
+        "Unity.TextMeshPro"
+    ],
     "includePlatforms": [],
     "excludePlatforms": [],
     "allowUnsafeCode": false,

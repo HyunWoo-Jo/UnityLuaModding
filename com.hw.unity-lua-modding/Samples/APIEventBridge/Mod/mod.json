@@ -1,8 +1,8 @@
 ﻿{
-    "name": "테스트 Lua 모드",
+    "name": "Test Lua Mod",
     "version": "1.0",
     "description": "기본 Lua 모드 테스트",
     "author": "개발자",
     "requiredMods": [],
-    "targetScenes":["APIEvent"]
+    "targetScenes":["APIEventBridge"]
 }

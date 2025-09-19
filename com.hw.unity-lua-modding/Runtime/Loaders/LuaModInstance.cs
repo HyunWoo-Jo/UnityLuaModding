@@ -5,6 +5,7 @@ using Modding.Utils;
 using System.Text;
 using Modding.Engine;
 using System;
+using static Codice.CM.WorkspaceServer.WorkspaceTreeDataStore;
 namespace Modding.Loaders {
     public class LuaModInstance : IModInstance {
 
@@ -24,6 +25,10 @@ namespace Modding.Loaders {
         private LuaFunction _resumeFunc;
         private LuaFunction _shutdownFunc;
         private LuaFunction _sceneChangedFucn;
+
+        // Lua API
+        private LuaModAPI _luaAPI;
+        private LuaModContext _context;
 
         public LuaModInstance(ModInfo modInfo) {
             ModInfo = modInfo;
@@ -56,14 +61,18 @@ namespace Modding.Loaders {
                     ModDebug.LogError($"[LuaMod] {Name}: Mod table not found");
                     return false;
                 }
+  
 
                 // Cache Lua functions (Lua 함수들 캐싱)
                 CacheLuaFunctions(modTable);
+                _context = new LuaModContext(Path);
+
+                // Init
+                _luaAPI.Initialize(_luaState, modTable, _context);
 
                 // Call Lua mod initialization function (Lua 모드 초기화 함수 호출)
                 if (_initializeFunc != null) {
-                    var context = new LuaModContext(Path);
-                    var initResults = _initializeFunc.Call(context);
+                    var initResults = _initializeFunc.Call(_context);
 
                     if (initResults.Length > 0 && initResults[0] is bool success && success) {
                         IsLoaded = true;
@@ -99,7 +108,7 @@ namespace Modding.Loaders {
         private void RegisterCSharpAPI() {
             try {
                 // Register C# API for use in Lua (Lua에서 사용할 C# API 등록)
-                _luaState["ModAPI"] = new LuaModAPI();
+                _luaState["ModAPI"] = _luaAPI = new LuaModAPI();
                 _luaState["Unity"] = new UnityLuaAPI();
                 _luaState["Event"] = new LuaEventWrapper();
 
@@ -191,6 +200,7 @@ namespace Modding.Loaders {
             } catch (Exception e) {
                 ModDebug.LogError($"[LuaMod] {Name} shutdown error: {e.Message}");
             } finally {
+                _context.Dispose();
                 CleanupLuaState();
                 IsLoaded = false;
             }
@@ -211,7 +221,7 @@ namespace Modding.Loaders {
             _pauseFunc?.Dispose();
             _resumeFunc?.Dispose();
             _shutdownFunc?.Dispose();
-
+            _luaAPI?.Dispose();
             // Clean up Lua state (Lua 상태 정리)
             _luaState?.Dispose();
             _luaState = null;
