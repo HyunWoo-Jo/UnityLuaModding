@@ -1,9 +1,7 @@
 {
     "name": "Modding",
     "rootNamespace": "Modding",
-    "references": [
-        "GUID:183be0d84e5d55c44911e37cf0f3700f"
-    ],
+    "references": [],
     "includePlatforms": [],
     "excludePlatforms": [],
     "allowUnsafeCode": false,

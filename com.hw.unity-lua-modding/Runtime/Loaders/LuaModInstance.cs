@@ -103,7 +103,6 @@ namespace Modding.Loaders {
                 _luaState["Unity"] = new UnityLuaAPI();
                 _luaState["Event"] = new LuaEventWrapper();
 
-
                 // Register C# functions as Lua functions (C# 함수들을 Lua 함수로 등록)
                 _luaState.RegisterFunction("CallAPI", this, typeof(LuaModInstance).GetMethod("CallAPI"));    
                 _luaState.RegisterFunction("print", this, typeof(LuaModInstance).GetMethod("LuaPrint"));
