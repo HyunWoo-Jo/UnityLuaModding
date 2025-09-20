@@ -1,0 +1,8 @@
+﻿{
+  "name": "Inventory Mod",
+  "version": "1.0.0",
+  "description": "Inventory System",
+  "author": "HW",
+  "requiredMods": [],
+  "targetScenes": ["APIInventory"]
+}

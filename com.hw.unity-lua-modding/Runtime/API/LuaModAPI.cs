@@ -5,6 +5,8 @@ using TMPro;
 using UnityEngine.EventSystems;
 using NLua;
 using System;
+using System.Linq;
+using Modding.Utils;
 namespace Modding.API {
     /// <summary>
     /// Use Game API in Lua (Lua 모드에서 사용할 수 있는 게임 API)
@@ -19,7 +21,8 @@ namespace Modding.API {
         private LuaModContext _modContext;
 
         private readonly Dictionary<string, LuaFunction> _cacheLuaFunctions = new();
-        private readonly Dictionary<string, GameObject> _cacheUIObjects = new();
+        private readonly Dictionary<int, GameObject> _cacheUIObjects = new();
+      
         #endregion
         public event Action OnDispose;
 
@@ -43,6 +46,9 @@ namespace Modding.API {
 
         #endregion
         #region GameObject
+        public void SetActive(GameObject gameObject, bool isActive) {
+            gameObject.SetActive(isActive);
+        }
 
         public GameObject FindGameObject(string name) {
             return GameObject.Find(name);
@@ -67,11 +73,18 @@ namespace Modding.API {
             return GameObject.Instantiate(obj);
         }
 
+        public int GetInstanceID(GameObject obj) {
+            return obj.GetInstanceID();
+        }
+
         public void DestroyGameObject(GameObject obj) {
             if (obj != null) {
                 GameObject.Destroy(obj);
             }
         }
+            public void SetParent(Transform tr, Transform parentTr) {
+                tr.SetParent(parentTr);
+            }
         #endregion
 
         #region Player
@@ -93,18 +106,82 @@ namespace Modding.API {
         #endregion
 
         #region UI
+        
+
+
+
         public GameObject GetMainCanvas() {
             return _mainCanvas == null ? _mainCanvas = GameObject.FindGameObjectWithTag("MainCanvas") : _mainCanvas;
         }
 
-        public GameObject CreateUI(string relativePath, Transform parent) {
-            ModUIInfo uiInfo = _modContext.LoadUIInfo(relativePath);
-            return CreateUIObject(uiInfo, parent);
+        public GameObject CreateUI(string relativePath, Transform parent = null, string name = null) {
+            ModUIInfos uiInfos = _modContext.LoadUIInfo(relativePath);
+            GameObject uiObject = CreateUIObject(uiInfos, 0, parent, name);
+#if UNITY_EDITOR
+            // Debug Code
+            uiObject.AddComponent<MonoUIInfoDebuger>().uiInfos = uiInfos;
+#endif
+            return uiObject;
         }
+        public GameObject GetUIGameObject(int instanceId) {
+            return _cacheUIObjects[instanceId];
+        }
+        public GameObject[] GetAllUI() {
+            return _cacheUIObjects.Select(kv => kv.Value).ToArray();
+        }
+        public int GetAllUICount() {
+            return _cacheUIObjects.Count;
+        }
+        public void SetSprite(GameObject uiObject, string relativePath) {
+            Image image = uiObject.GetComponent<Image>();
+            if (image != null) {
+                image.sprite = _modContext.LoadSprite(relativePath);
+            }
+        }
+        public void SetRectPosition(GameObject uiObject, float x, float y) {
+            RectTransform rectTransform = uiObject.GetComponent<RectTransform>();
+            if (rectTransform != null) {
+                rectTransform.anchoredPosition = new Vector2(x, y);
+            }
+        }
+        public void SetText(GameObject uiObject, string text) {
+            TextMeshProUGUI tm = uiObject.GetComponent<TextMeshProUGUI>();
+            if (tm != null) {
+                tm.text = text;
+            }
+        }
+        public void SetButtonEvents(GameObject uiObject, string triggerType, string luaFunctionName, LuaTable parameters = null) {
+            ModUIButtonEvent[] events = new ModUIButtonEvent[1];
+            var bevent = new ModUIButtonEvent();
+            bevent.triggerType = triggerType;
+            bevent.luaFunctionName = luaFunctionName;
+            bevent.parameters = null;
+            if (parameters != null) {
+                var paramList = new List<string>();
+                // luatable to string[]
+                foreach (var key in parameters.Keys) {
+                    var value = parameters[key];
+                    paramList.Add(value?.ToString() ?? "");    
+                }
+                bevent.parameters = paramList.ToArray();
+            }
+            events[0] = bevent;
+            SetupButtonEvents(uiObject, events);
+        }
+        #endregion
+        #region UI Private
+        private GameObject CreateUIObject(ModUIInfos uiInfos, int id, Transform parent, string name) {
+            ModUIInfo uiInfo = uiInfos.ui_infos.Where(uiInfo => uiInfo.id == id).FirstOrDefault();
 
-        public GameObject CreateUIObject(ModUIInfo uiInfo, Transform parent) {
-            GameObject uiObject = new GameObject(uiInfo.name);
-            _cacheUIObjects[uiInfo.name] = uiObject;
+            if (uiInfo == null) {
+                ModDebug.Log($"not exists: {id}");
+                return null;
+            }
+            string uiName = string.IsNullOrEmpty(name) ? uiInfo.name : name;
+            GameObject uiObject = new GameObject(uiName);
+
+            _cacheUIObjects[uiObject.GetInstanceID()] = uiObject;
+
             RectTransform rectTransform = uiObject.AddComponent<RectTransform>();
             SetupRectTransform(rectTransform, uiInfo, parent);
 
@@ -123,18 +200,12 @@ namespace Modding.API {
                 SetupButton(uiObject, uiInfo.buttonOption);
             }
 
-            foreach (var info in uiInfo.children) {
-                CreateUIObject(info, uiObject.transform);
+            foreach (var childId in uiInfo.children) {
+                CreateUIObject(uiInfos, childId, uiObject.transform, null);
             }
 
             return uiObject;
         }
-        public GameObject GetUIGameObject(string name) {
-            return _cacheUIObjects[name];
-        }
-        #endregion
-        #region UI Private
-
         private void SetupRectTransform(RectTransform rectTransform, ModUIInfo uiInfo, Transform parent) {
             if (parent != null) {
                 rectTransform.SetParent(parent, false);
@@ -210,26 +281,20 @@ namespace Modding.API {
         private void SetupImage(GameObject uiObject, ModUIInfo uiInfo) {
             Image image = uiObject.AddComponent<Image>();
 
-            // 텍스처 로드
+            // Load Texture
             if (!string.IsNullOrEmpty(uiInfo.imageOption.imagePath)) {
-                Texture2D texture = _modContext.LoadTexture(uiInfo.imageOption.imagePath);
-                if (texture != null) {
-                    Sprite sprite = Sprite.Create(texture, new Rect(0, 0, texture.width, texture.height), Vector2.one * 0.5f);
+                Sprite sprite = _modContext.LoadSprite(uiInfo.imageOption.imagePath);
+                if (sprite != null) {
                     image.sprite = sprite;
                 }
-
             }
 
-            // Image 옵션 적용
+            // Apply Image Option
             if (uiInfo.imageOption != null) {
-                image.color = uiInfo.imageOption.color;
-                image.type = uiInfo.imageOption.imageType;
+                image.color = uiInfo.imageOption.ImageColor;
+                image.type = uiInfo.imageOption.ImageType;
                 image.preserveAspect = uiInfo.imageOption.preserveAspect;
                 image.raycastTarget = uiInfo.imageOption.raycastTarget;
-
-                if (!string.IsNullOrEmpty(uiInfo.imageOption.materialPath)) {
-                    // 머티리얼 로드 로직
-                }
             }
         }
 
@@ -249,8 +314,8 @@ namespace Modding.API {
         }
 
         private void SetupButton(GameObject uiObject, ModUIButtonOption option) {
-            // 이벤트 설정
-            if (option.events != null) {
+            // Set Event
+            if (option.events != null && option.enabled) {
                 SetupButtonEvents(uiObject, option.events);
             }
         }
@@ -262,11 +327,10 @@ namespace Modding.API {
 
             foreach (var eventInfo in events) {
                 EventTrigger.Entry entry = new EventTrigger.Entry();
-                entry.eventID = eventInfo.triggerType;
+                entry.eventID = eventInfo.TriggerType;
 
-                // Lua 함수 호출 설정
+                // Lua method call
                 entry.callback.AddListener((data) => {
-                    // ModEngine을 통해 Lua 함수 호출
                     CallLuaFunction(eventInfo.luaFunctionName, eventInfo.parameters);
                 });
                 trigger.triggers.Add(entry);
@@ -274,10 +338,31 @@ namespace Modding.API {
         }
         private void CallLuaFunction(string functionName, string[] parameters) {
             if (!_cacheLuaFunctions.TryGetValue(functionName, out LuaFunction func)) {
-                func =_luaTable[functionName] as LuaFunction;
+                func = _luaTable[functionName] as LuaFunction;
                 _cacheLuaFunctions[functionName] = func;
             }
-            func?.Call(parameters);
+            // Call Lua function with appropriate number of parameters
+            // 매개변수 개수에 따라 적절한 방식으로 Lua 함수 호출
+            switch (parameters.Length) {
+                case 0:
+                func.Call();
+                break;
+                case 1:
+                func.Call(parameters[0]);
+                break;
+                case 2:
+                func.Call(parameters[0], parameters[1]);
+                break;
+                case 3:
+                func.Call(parameters[0], parameters[1], parameters[2]);
+                break;
+                case 4:
+                func.Call(parameters[0], parameters[1], parameters[2], parameters[3]);
+                break;
+                default:
+                func.Call(parameters);
+                break;
+            }
             Debug.Log($"[ModUI] Calling Lua function: {functionName}");
         }
         #endregion

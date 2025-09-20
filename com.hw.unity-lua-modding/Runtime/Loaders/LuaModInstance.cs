@@ -6,6 +6,7 @@ using System.Text;
 using Modding.Engine;
 using System;
 using static Codice.CM.WorkspaceServer.WorkspaceTreeDataStore;
+using System.IO;
 namespace Modding.Loaders {
     public class LuaModInstance : IModInstance {
 
@@ -116,6 +117,7 @@ namespace Modding.Loaders {
                 _luaState.RegisterFunction("CallAPI", this, typeof(LuaModInstance).GetMethod("CallAPI"));    
                 _luaState.RegisterFunction("print", this, typeof(LuaModInstance).GetMethod("LuaPrint"));
                 _luaState.RegisterFunction("log", this, typeof(LuaModInstance).GetMethod("LuaLog"));
+                _luaState.RegisterFunction("LoadLua", this, typeof(LuaModInstance).GetMethod("LoadLua"));
 
                 ModDebug.Log("LuaModInstance: Successfully registered C# APIs for Lua");
             } catch (Exception e) {
@@ -169,7 +171,6 @@ namespace Modding.Loaders {
 
         public void Update(float deltaTime) {
             if (!IsLoaded || _updateFunc == null) return;
-
             try {
                 _updateFunc.Call(deltaTime);
             } catch (Exception e) {
@@ -228,6 +229,20 @@ namespace Modding.Loaders {
         }
 
         // C# functions that can be called from Lua (Lua에서 호출할 수 있는 C# 함수들)
+        public LuaTable LoadLua(string relativePath) {
+            try {
+                string fullPath = System.IO.Path.Combine(Path, relativePath);
+                if (File.Exists(fullPath)) {
+                    string script = File.ReadAllText(fullPath);
+                    var result = _luaState.DoString(script);
+                    return GetModTable(result);
+                }
+                ModDebug.LogError($"not exist file {relativePath}");
+            } catch (Exception e) {
+                ModDebug.LogError($"fail load lua {relativePath}: {e.Message}");
+            }
+            return null;
+        }
         public static object CallAPI(string apiName, params object[] args) {
             // ModAPIManager의 static 메서드를 호출하는 래퍼
             return ModAPIManager.CallAPI(apiName, args);

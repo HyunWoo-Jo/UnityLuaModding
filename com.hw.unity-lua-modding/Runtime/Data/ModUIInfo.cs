@@ -11,8 +11,13 @@ namespace Modding {
 
 
     [Serializable]
+    public class ModUIInfos {
+        public ModUIInfo[] ui_infos;
+    }
+    [Serializable]
     public partial class ModUIInfo {
         public string name = "ModUIElement";
+        public int id = -1;
         public float[] position = new float[2] { 0, 0 };
         public float[] size = new float[2] { 100, 100 };
         public float[] rotation = new float[3] { 0, 0, 0 };
@@ -26,8 +31,8 @@ namespace Modding {
         public ModUIButtonOption buttonOption;
         public ModUITextOption textOption;
 
-        // ui children 
-        public ModUIInfo[] children;
+        // ui children id
+        public int[] children;
 
         public Vector2 Position => new Vector2(position[0], position[1]);
         public Vector2 Size => new Vector2(size[0], size[1]);
@@ -64,13 +69,15 @@ namespace Modding {
     [Serializable]
     public partial class ModUIImageOption {
         public bool enabled = false;
-        public Color color = Color.white;
-        public Image.Type imageType = Image.Type.Simple;
+        public float[] color = new float[4] { 1, 1, 1, 1 };
+
+        public string imageType = Image.Type.Simple.ToString();
         public bool preserveAspect = false;
         public bool raycastTarget = true;
         public string imagePath;
-        public Material material;
-        public string materialPath;
+
+        public Color ImageColor => new Color(color[0], color[1], color[2], color[3]);
+        public Image.Type ImageType => System.Enum.Parse<Image.Type>(imageType);
     }
 
     [Serializable]
@@ -83,9 +90,11 @@ namespace Modding {
 
     [Serializable]
     public class ModUIButtonEvent {
-        public EventTriggerType triggerType = EventTriggerType.PointerClick;
+        public string triggerType = EventTriggerType.PointerClick.ToString();
         public string luaFunctionName;
         public string[] parameters;
+
+        public EventTriggerType TriggerType => System.Enum.Parse<EventTriggerType>(triggerType);
     }
 
     [Serializable]
@@ -93,7 +102,7 @@ namespace Modding {
         public bool enabled = false;
         public string text = "New Text";
         public int fontSize = 14;
-        public float[] color = new float[3] { 0, 0, 0 };
+        public float[] color = new float[4] { 0, 0, 0, 1};
         public string alignment = TextAlignmentOptions.Midline.ToString();
         public bool richText = true;
         public bool raycastTarget = true;
@@ -106,7 +115,7 @@ namespace Modding {
         public int resizeTextMaxSize = 40;
 
 
-        public Color TextColor => new Color(color[0], color[1], color[2]);
+        public Color TextColor => new Color(color[0], color[1], color[2], color[3]);
         public TextAlignmentOptions Alignment => System.Enum.Parse<TextAlignmentOptions>(alignment);
         public FontStyles FontStyle => System.Enum.Parse<FontStyles>(fontStyle);
     }

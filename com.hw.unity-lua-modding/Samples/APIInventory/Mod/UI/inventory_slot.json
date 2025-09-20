@@ -1,0 +1,27 @@
+{
+"ui_infos": [ 
+{
+  "id": 0,
+  "name": "slot",
+  "position": [0, 100],
+  "size": [150, 150],
+  "rotation": [0, 0, 0],
+  "scale": [1, 1, 1],
+  "anchor": {
+    "preset": "MiddleCenter",
+    "pivot": [0.5, 0.5],
+    "offsetMin": [0, 0],
+    "offsetMax": [0, 0]
+  },
+   "imageOption": {
+    "enabled": true,
+    "color": [1, 1, 1, 1],
+    "imageType": "Simple",
+    "preserveAspect": false,
+    "raycastTarget": true,
+    "imagePath": "UI/slot.png"
+  },
+  "children": []
+}
+]
+}

@@ -1,4 +1,5 @@
 ﻿using Modding.Utils;
+using NLua;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -12,6 +13,7 @@ namespace Modding.API {
         private string _modFolderPath;
         #region Cache
         private Dictionary<string, Texture2D> _textureCaches = new();
+        private Dictionary<string, Sprite> _spriteCaches = new();
         #endregion
 
         private event Action OnDispose;
@@ -40,8 +42,18 @@ namespace Modding.API {
             }
         }
 
+        public Sprite LoadSprite(string relativePath) {
+            if(_spriteCaches.TryGetValue(relativePath, out var sprite)) {
+                return sprite;
+            }
+            Texture2D texture = LoadTexture(relativePath);
+            if (texture != null) {
+                return _spriteCaches[relativePath] = Sprite.Create(texture, new Rect(0, 0, texture.width, texture.height), Vector2.one * 0.5f);
+            }
+            return null;
+        }
 
-        public Texture2D LoadTexture(string relativePath) {
+        private Texture2D LoadTexture(string relativePath) {
             try {
                 if (_textureCaches.TryGetValue(relativePath, out Texture2D cacheTexture)) {
                     if(cacheTexture != null) {
@@ -66,8 +78,6 @@ namespace Modding.API {
             }
         }
 
-
-
         private void DisposeAllTexture() {
             foreach (var texture in _textureCaches.Values) {
                 Texture2D.Destroy(texture);
@@ -75,7 +85,7 @@ namespace Modding.API {
             _textureCaches.Clear();
         }
 
-        public ModUIInfo LoadUIInfo(string relativePath) {
+        public ModUIInfos LoadUIInfo(string relativePath) {
             try {
                 string fullPath = Path.Combine(_modFolderPath, relativePath);
                 if (!File.Exists(fullPath)) {
@@ -85,15 +95,15 @@ namespace Modding.API {
 
                 string jsonContent = File.ReadAllText(fullPath);
 
-                ModUIInfo uiInfo = JsonUtility.FromJson<ModUIInfo>(jsonContent);
+                ModUIInfos uiInfos = JsonUtility.FromJson<ModUIInfos>(jsonContent);
 
-                if (uiInfo == null) {
+                if (uiInfos == null) {
                     ModDebug.LogError($"[LuaContext] Failed to parse UI JSON: {relativePath}");
                     return null;
                 }
 
                 ModDebug.Log($"[LuaContext] Successfully loaded UI: {relativePath}");
-                return uiInfo;
+                return uiInfos;
             } catch (Exception e) {
                 ModDebug.LogError($"[LuaContext] Failed to load UIInfo: {e.Message}");
                 return null;
