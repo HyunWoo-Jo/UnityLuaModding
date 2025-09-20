@@ -8,6 +8,7 @@ Unity Lua Modding는 Unity용 Lua 기반 Modding 프레임 워크입니다.
 - [주요 기능](#feature)
 - [설치 방법](#install)
 - [시작](#start)
+- [UI 생성](#createUI)
 - [API](#api)
 - [보안](#security)
 - [샘플](#sample)
@@ -141,7 +142,72 @@ end
 --테이블 반환 중요
 return ModName
 ```
+---
+<a id = createUI></a>
+## UI 생성
+### json Style
+json을 이용해서 UI 생성 Style을 정의 할 수 있습니다.
+```json
+// 기본 정의
+{
+"ui_infos": [ 
+{
+  "id": 0, // 기본 id는 0으로 정의 (0 == 최상위)
+  "name": "SimpleButton",
+  "position": [0, 0],
+  "size": [150, 150],
+  "rotation": [0, 0, 0],
+  "scale": [1, 1, 1],
+  "anchor": {
+    "preset": "MiddleCenter",
+    "pivot": [0.5, 0.5],
+    "offsetMin": [0, 0],
+    "offsetMax": [0, 0]
+  },
+  "imageOption": {
+    "enabled": true,
+    "color": [0.2, 0.7, 1.0, 1.0],
+    "imageType": "Simple",
+    "preserveAspect": false,
+    "raycastTarget": true,
+    "imagePath": "UI/slot.png",
+    "materialPath": ""
+  },
+  "buttonOption": {
+    "enabled": true,
+    "interactable": true,
+    "events": [
+    {
+      "triggerType": "PointerClick",
+      "luaFunctionName": "OnButtonClick",
+      "parameters": ["button1", "clicked"]
+    }
+    ]
+  },
+  "children": []
+}
+]
 
+// 계층 구조로 생성해야 될 경우
+{
+"ui_infos": [ 
+{
+  "id": 0,
+   ...
+  "children": [1] 
+},
+{
+  "id": 1,
+  ...
+}
+]
+}
+```
+```lua
+// lua 코드로도 계층 구조를 정의 가능
+ModAPI:CreateUI("UI/inventory_parent_ui.json", mainCanvas.transform)
+
+```
 ---
 <a id = api></a>
 ## API
@@ -239,6 +305,139 @@ public static class UnityGameObjectAPI {
 CallAPI("Unity.Core.GameObject.Create", "test attribute")
 
 ```
+## Lua에서 사용 가능한 API 목록
+
+### **ModAPI** - 게임 객체 및 UI 제어 API
+
+#### GameObject 관련
+- `SetActive(GameObject gameObject, bool isActive)` - GameObject의 활성 상태 조절
+- `FindGameObject(string name)` - 이름으로 GameObject 찾기
+- `FindGameObjectWithTag(string tag)` - 태그로 GameObject 찾기
+- `FindGameObjectsWithTag(string tag)` - 태그로 GameObject 배열 찾기
+- `CreateGameObject(string name)` - 새로운 GameObject 생성
+- `Instantiate(GameObject obj)` - GameObject 복제
+- `GetInstanceID(GameObject obj)` - GameObject의 인스턴스 ID 반환
+- `DestroyGameObject(GameObject obj)` - GameObject 삭제
+- `SetParent(Transform tr, Transform parentTr)` - 부모 Transform 설정
+
+#### Player 관련
+- `GetPlayer()` - Player GameObject 반환
+- `GetPlayerPosition()` - Player 위치(Vector3) 반환
+- `SetPlayerPosition(float x, float y, float z)` - Player 위치 설정
+
+#### UI 관련
+- `GetMainCanvas()` - MainCanvas GameObject 반환
+- `CreateUI(string relativePath, Transform parent = null, string name = null)` - UI 생성
+- `GetUIGameObject(int instanceId)` - 인스턴스 ID로 UI GameObject 반환
+- `GetAllUI()` - 모든 UI GameObject 배열 반환
+- `GetAllUICount()` - UI 개수 반환
+- `SetSprite(GameObject uiObject, string relativePath)` - UI 이미지 스프라이트 설정
+- `SetRectPosition(GameObject uiObject, float x, float y)` - UI RectTransform 위치 설정
+- `SetText(GameObject uiObject, string text)` - UI 텍스트 설정
+- `SetButtonEvents(GameObject uiObject, string triggerType, string luaFunctionName, LuaTable parameters = null)` - 버튼 이벤트 설정
+
+---
+
+### **Unity** - Unity 엔진 API 래퍼
+
+#### Time 관련
+- `GetDeltaTime()` - 프레임 간 시간 차이(deltaTime) 반환
+- `GetTime()` - 게임 시작 이후 경과 시간 반환
+- `GetTimeScale()` - 시간 스케일 값 반환
+
+#### Input 관련
+- `GetKey(string keyName)` - 키가 눌려있는지 확인
+- `GetKeyDown(string keyName)` - 키가 눌렸는지 확인
+- `GetKeyUp(string keyName)` - 키가 떼어졌는지 확인
+- `GetMouseButton(int button)` - 마우스 버튼 상태 확인
+- `GetMousePosition()` - 마우스 위치(Vector3) 반환
+
+#### Vector3 관련
+- `CreateVector3(float x, float y, float z)` - 새로운 Vector3 생성
+- `Distance(Vector3 pos1, Vector3 pos2)` - 두 점 사이의 거리 계산
+- `GetType(object obj)` - 객체 타입 이름 반환
+- `Normalize(Vector3 vector)` - 벡터 정규화
+
+#### Physics 관련
+- `AddForce(GameObject obj, Vector3 pos)` - GameObject에 힘 적용
+- `Raycast(Vector3 origin, Vector3 direction, float maxDistance = 100f)` - 레이캐스트 실행
+
+#### Utils 관련
+- `Random(float min = 0f, float max = 1f)` - 랜덤 실수 반환
+- `RandomInt(int min = 0, int max = 10)` - 랜덤 정수 반환
+- `Sin(float value)` - 사인 값 계산
+- `Cos(float value)` - 코사인 값 계산
+- `Sqrt(float value)` - 제곱근 계산
+- `Abs(float value)` - 절대값 반환
+- `Clamp(float value, float min, float max)` - 값을 범위 내로 제한
+
+---
+
+### **Event** - 이벤트 시스템 API (LuaEventWrapper)
+
+- `Subscribe(string eventName, LuaFunction handler)` - 이벤트 구독
+- `Unsubscribe(string eventName, LuaFunction handler)` - 이벤트 구독 해제
+- `Publish(string eventName, object data = null)` - 이벤트 발생
+- `ClearEventHandlers(string eventName)` - 특정 이벤트의 모든 핸들러 제거
+
+---
+
+### **LuaModContext** - 모드 컨텍스트 API
+
+- `LoadTextFile(string relativePath)` - 텍스트 파일 로드
+- `LoadSprite(string relativePath)` - 스프라이트 이미지 로드
+- `LoadUIInfo(string relativePath)` - UI 정보 JSON 파일 로드
+- `FindGameObject(string name)` - GameObject 찾기
+
+---
+
+### **전역 함수** (LuaModInstance에서 등록)
+
+- `CallAPI(string apiName, params object[] args)` - 확장 API 호출
+- `print(string message)` - 콘솔에 메시지 출력
+- `log(string level, string message)` - 레벨별 로그 출력 (info/warning/error)
+- `LoadLua(string relativePath)` - 다른 Lua 스크립트 파일 로드
+
+---
+
+## 사용 예시
+
+```lua
+-- Lua 모드 예시
+local MyMod = {}
+
+function MyMod:Initialize(context)
+    -- GameObject 찾기 및 제어
+    local player = ModAPI:GetPlayer()
+    ModAPI:SetPlayerPosition(0, 10, 0)
+    
+    -- UI 생성
+    local ui = ModAPI:CreateUI("ui/myui.json", ModAPI:GetMainCanvas())
+    ModAPI:SetText(ui, "Hello World!")
+    
+    -- 이벤트 구독
+    Event:Subscribe("PlayerDamaged", function(data)
+        print("Player took damage: " .. tostring(data))
+    end)
+    
+    -- Unity API 사용
+    local deltaTime = Unity:GetDeltaTime()
+    local mousePos = Unity:GetMousePosition()
+    
+    return true
+end
+
+function MyMod:Update(deltaTime)
+    -- 키 입력 체크
+    if Unity:GetKeyDown("space") then
+        Event:Publish("PlayerJumped", {height = 5.0})
+    end
+end
+
+return MyMod
+```
+
+이 API들을 통해 Lua 스크립트에서 Unity 게임 엔진의 다양한 기능을 제어할 수 있습니다.
 ---
 <a id = security></a>
 ## 보안
