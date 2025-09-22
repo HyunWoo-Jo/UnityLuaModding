@@ -1,14 +1,13 @@
 # Changelog
 
-## [Unreleased]
-
+## [1.0.0] - 2025-09-20
 ### Added
+- Added API function (API 기능 추가)
 
 ## [0.0.3] - 2025-09-18
 ### Added
 - Added Attribute API Extension (Attribute를 이용한 확장 기능)
 - Added individual scene loading capability (씬별 개별 로드 기능 추가)
-
 
 ## [0.0.2] - 2025-09-16
 ### Added
