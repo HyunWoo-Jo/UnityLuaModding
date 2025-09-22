@@ -247,7 +247,7 @@ end)
 // Assembly Definition Reference을 활용 같은 Assembly영역에 정의
 namespace Modding.API {
   public partial class LuaModAPI {
-    private void DebugLog(){
+    public void DebugLog(){
     ...
     }
   }
