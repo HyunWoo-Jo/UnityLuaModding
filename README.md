@@ -1,6 +1,4 @@
 # Unity Lua Modding
-- [English](/README_eng.md)
-
 Unity Lua Modding는 Unity용 Lua 기반 Modding 프레임 워크입니다.
 
 ---
